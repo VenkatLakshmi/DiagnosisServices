@@ -1,19 +1,20 @@
+package com.apigee.diagnosis.util;
+
 /**
  * Created by venkataraghavan on 17/07/16.
  */
-package com.apigee.diagnosis.util;
-import java.net.*;
-import java.io.*;
+
+import java.net.URL;
 
 
 public class RequestParser {
 
     public static final int MAX_QUERY_PARAMS = 4;
 
-    public String orgvalue;
-    public String envvalue;
-    public String apivalue;
-    public String revvalue;
+    public String org;
+    public String env;
+    public String api;
+    public String revision;
 
     public RequestParser() {
     }
@@ -46,16 +47,16 @@ public class RequestParser {
                 String[] tokens2 = query.split(delim2);
 
                 if (tokens2[0].equals("org")) {
-                    orgvalue = tokens2[1];
+                    org = tokens2[1];
 
                 }else if (tokens2[0].equals("env")) {
-                    envvalue = tokens2[1];
+                    env = tokens2[1];
 
                 }else if (tokens2[0].equals("api")) {
-                    apivalue = tokens2[1];
+                    api = tokens2[1];
 
                 }else if (tokens2[0].equals("revision")) {
-                    revvalue = tokens2[1];
+                    revision = tokens2[1];
 
                 }else {
                     System.out.println("Incorrect Request URL - query param  should have ?org=;env=;api=;revision=");
