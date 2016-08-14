@@ -2,9 +2,9 @@ package com.apigee.diagnosis.service;
 
 import com.apigee.diagnosis.beans.APIDeploymentState;
 import com.apigee.diagnosis.deployment.ZKAPIDeployInfoService;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.*;
+
 
 import java.io.IOException;
 
@@ -27,10 +27,62 @@ public class DeploymentService {
             apiDeploymentState = zkapiDeployInfoService.getCompleteDeploymentInfo();
             zkapiDeployInfoService.close();
 
+        } catch (IllegalArgumentException iae) {
+            throw new ResourceNotFoundException(iae.getMessage());
         } catch (Exception e) {
-            System.out.println(e.getMessage());
+            throw new ZKAPIDeployServiceException(e.getMessage());
         }
         return apiDeploymentState;
-
     }
 }
+
+@ControllerAdvice
+class DeploymentControllerAdvice {
+
+    @ResponseBody
+    @ExceptionHandler(ResourceNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    ErrorResponse resourceNotFoundExceptionHandler(ResourceNotFoundException ex) {
+        return new ErrorResponse(ex.getClass().getCanonicalName(), ex.getMessage());
+    }
+
+    @ResponseBody
+    @ExceptionHandler(ZKAPIDeployServiceException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    ErrorResponse zkAPIDeployServiceExceptionHandler(ZKAPIDeployServiceException ex) {
+        return new ErrorResponse(ex.getClass().getCanonicalName(), ex.getMessage());
+    }
+}
+
+@ResponseStatus(HttpStatus.NOT_FOUND)
+class ResourceNotFoundException extends RuntimeException {
+
+    public ResourceNotFoundException(String message) {
+        super(message);
+    }
+}
+
+@ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+class ZKAPIDeployServiceException extends RuntimeException {
+
+    public ZKAPIDeployServiceException(String message) {
+        super(message);
+    }
+}
+
+
+/**
+ * Defines the JSON output format of error responses
+ */
+class ErrorResponse {
+    public String code;
+
+    public String message;
+
+    public ErrorResponse(String code, String message) {
+        this.code = code;
+        this.message = message;
+    }
+}
+
+
