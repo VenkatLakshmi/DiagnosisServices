@@ -39,7 +39,8 @@ public class ZKAPIDeployInfoService {
     private final static String SPEC_NODE = "spec";
     private final static String SERVERS_NODE = "statuses";
     private final static String SERVERS_STATUS_NODE = "status";
-    private final static String SERVERS_ERROR_NODE = "error";
+    private final static String SERVERS_ERRORCODE_NODE = "errorcode";
+    private final static String SERVERS_ERRORMESSAGE_NODE = "errormessage";
 
     // LOG instance
     private static Logger LOG = LoggerFactory.getLogger(ZKAPIDeployInfoService.class);
@@ -229,14 +230,25 @@ public class ZKAPIDeployInfoService {
                         + serverUUID + "/"
                         + SERVERS_STATUS_NODE;
                 String status = zkClientManager.getZNodeData(apiServerStatusPath);
-                String error = "";
-                if (status.equals("error")) {
-                    String apiServerErrorPath = apiServersPath + "/"
+                String errorcode = "";
+                String errormessage = "";
+                Server server = null;
+                if (!status.equals("success")) {
+                    String apiServerErrorCodePath = apiServersPath + "/"
                             + serverUUID + "/"
-                            + SERVERS_ERROR_NODE;
-                    error = zkClientManager.getZNodeData(apiServerErrorPath);
+                            + SERVERS_ERRORCODE_NODE;
+                    errorcode = zkClientManager.getZNodeData(apiServerErrorCodePath);
+
+                    String apiServerErrorMessagePath = apiServersPath + "/"
+                            + serverUUID + "/"
+                            + SERVERS_ERRORMESSAGE_NODE;
+                    errormessage = zkClientManager.getZNodeData(apiServerErrorMessagePath);
+                    // add it to the server
+                    server = new Server(serverUUID, status, errorcode, errormessage);
+
+                } else {
+                    server = new Server(serverUUID, status, null, null);
                 }
-                Server server = new Server(serverUUID, status, error);
                 allServers[serverIndex++] = server;
             }
         }

@@ -37,12 +37,6 @@ public class ZKClientManager implements ZKManager {
     }
 
     public ZKClientManager(String zkServersEnsemble) {
-        try {
-            String hosts = RestAPIExecutor.executeGETAPI(PINPOINT_ZKHOSTS_URL, ACCESS_TOKEN);
-            System.out.println(hosts);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
         this.zkServersEnsemble = zkServersEnsemble;
     }
 

@@ -1,22 +1,27 @@
 package com.apigee.diagnosis.beans;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 /**
  * Created by senthil on 18/07/16.
  */
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class Server {
 
     private String uuid;
     private String status;
-    private String error;
+    private String errorcode;
+    private String errormessage;
 
     public Server() {
 
     }
 
-    public Server(String uuid, String status, String error) {
+    public Server(String uuid, String status, String errorcode, String errormessage) {
         this.uuid = uuid;
         this.status = status;
-        this.error = error;
+        this.errorcode = errorcode;
+        this.errormessage = errormessage;
     }
 
     public String getUuid() {
@@ -35,17 +40,25 @@ public class Server {
         this.status = status;
     }
 
-    public String getError() {
-        return error;
+    public String getErrorcode() {
+        return errorcode;
     }
 
-    public void setError(String error) {
-        this.error = error;
+    public void setError(String errorcode) {
+        this.errorcode = errorcode;
+    }
+
+    public String getErrormessage() {
+        return errormessage;
+    }
+
+    public void setErrormessage(String errormessage) {
+        this.errormessage = errormessage;
     }
 
     @Override
     public String toString() {
-        return "Server [uuid=" + uuid + " status=" + status + " error=" + error + "]";
+        return "Server [uuid=" + uuid + " status=" + status + " errorcode=" + errorcode + " errormessage=" + errormessage + "]";
     }
 
 }

@@ -1,6 +1,8 @@
 package com.apigee.diagnosis.util;
 
 import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.map.annotate.JsonSerialize;
+
 import java.io.IOException;
 
 /**
@@ -10,6 +12,8 @@ public class JSONConverter {
 
     public static String ObjectToJSON(Object object) throws IOException {
         ObjectMapper mapper = new ObjectMapper();
-        return mapper.writeValueAsString(object);
+        mapper.getSerializationConfig().withSerializationInclusion(JsonSerialize.Inclusion.NON_NULL);
+        mapper.getSerializationConfig().withSerializationInclusion(JsonSerialize.Inclusion.NON_EMPTY);
+        return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(object);
     }
 }

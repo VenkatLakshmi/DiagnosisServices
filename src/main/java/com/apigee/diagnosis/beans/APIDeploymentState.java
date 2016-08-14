@@ -1,8 +1,11 @@
 package com.apigee.diagnosis.beans;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 /**
  * Created by senthil on 18/07/16.
  */
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class APIDeploymentState {
 
 
