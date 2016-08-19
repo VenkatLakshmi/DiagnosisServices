@@ -357,11 +357,21 @@ public class MPAPIDeployInfoService {
 
                     // Run the API on the MP to get the revision deployed for the specific API
                     String xmlResponse = getAPIDeployedRevisionOnMP(externalIP);
-                    String apiDeployedRevisionOnMP = XMLResponseParser.getItemListFromXMLResponse(xmlResponse).get(0);
+                    ArrayList<String> deployedRevisionsList = XMLResponseParser.getItemListFromXMLResponse(xmlResponse);
                     String apiDeployedState = "failure";
-                    if (apiDeployedRevisionOnMP.equals(this.revision)) {
-                        apiDeployedState = "success";
+                    if (deployedRevisionsList != null
+                            && !deployedRevisionsList.isEmpty()) {
+                        String apiDeployedRevisionOnMP = deployedRevisionsList.get(0);
+
+                        LOG.info("apiDeployedRevisionOnMP = " + apiDeployedRevisionOnMP);
+
+                        if ((apiDeployedRevisionOnMP != null) &&
+                                !(apiDeployedRevisionOnMP.isEmpty()) &&
+                                apiDeployedRevisionOnMP.equals(this.revision)) {
+                            apiDeployedState = "success";
+                        }
                     }
+                    LOG.info("apiDeployedState = " + apiDeployedState);
 
                     Server mpServer = new Server(mpUUID, apiDeployedState, null, null);
                     mpServersList.add(mpServer);
