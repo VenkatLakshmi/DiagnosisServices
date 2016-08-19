@@ -1,6 +1,10 @@
 package com.apigee.diagnosis.util;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -17,6 +21,9 @@ public class RestAPIExecutor {
     private final static String USER_AGENT = "Mozilla/5.0";
 
     final static String FORWARD_SLASH = "/";
+
+    // LOG instance
+    private static Logger LOG = LoggerFactory.getLogger(RestAPIExecutor.class);
 
     /*static {
         USER_CREDENTIALS = getUserCredentials();
@@ -38,6 +45,47 @@ public class RestAPIExecutor {
         }
         return userCredentials;
     }*/
+
+    /*
+     * Executes the GET Method for the specified API and returns the response
+     */
+    public static String executeGETAPI(String apiURL) throws IOException {
+        LOG.info("Executing the API " + apiURL);
+        // Create the URL object with the api
+        URL urlObj = new URL(apiURL);
+
+        // Create the connection
+        HttpURLConnection con = (HttpURLConnection) urlObj.openConnection();
+
+        LOG.info("Connection stablished " + con);
+
+        // Set the REST API Method as GET
+        con.setRequestMethod("GET");
+
+        // Add request headers
+        con.setRequestProperty("User-Agent", USER_AGENT);
+        con.setRequestProperty("Content-Type", "application/json");
+
+
+        int responseCode = con.getResponseCode();
+
+        LOG.info("Response Code from the API " + responseCode);
+
+        // Process the GET API response
+        BufferedReader in = new BufferedReader(
+                new InputStreamReader(con.getInputStream()));
+        String inputLine;
+        StringBuilder response = new StringBuilder();
+
+        while ((inputLine = in.readLine()) != null) {
+            response.append(inputLine);
+        }
+        in.close();
+
+        LOG.info("Response from the API " + response.toString());
+
+        return response.toString();
+    }
 
     /*
      * Executes the GET Method for the specified API and returns the response

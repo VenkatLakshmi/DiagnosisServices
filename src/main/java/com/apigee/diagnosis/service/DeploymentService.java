@@ -2,6 +2,7 @@ package com.apigee.diagnosis.service;
 
 import com.apigee.diagnosis.beans.APIDeploymentState;
 import com.apigee.diagnosis.deployment.ZKAPIDeployInfoService;
+import com.apigee.diagnosis.deployment.MPAPIDeployInfoService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,11 +22,34 @@ public class DeploymentService {
         APIDeploymentState apiDeploymentState = null;
 
         try {
-            ZKAPIDeployInfoService zkapiDeployInfoService = new
+            ZKAPIDeployInfoService zkAPIDeployInfoService = new
                     ZKAPIDeployInfoService(org, env, api, revision);
 
-            apiDeploymentState = zkapiDeployInfoService.getCompleteDeploymentInfo();
-            zkapiDeployInfoService.close();
+            apiDeploymentState = zkAPIDeployInfoService.getCompleteDeploymentInfo();
+            zkAPIDeployInfoService.close();
+
+        } catch (IllegalArgumentException iae) {
+            throw new ResourceNotFoundException(iae.getMessage());
+        } catch (Exception e) {
+            throw new ZKAPIDeployServiceException(e.getMessage());
+        }
+        return apiDeploymentState;
+    }
+
+    @RequestMapping(value = "/v1/diagnosis/mpdeploymentinfo/organizations/{org}/environments/{env}/apis/{api}/revisions/{revision}/status", produces = "application/json")
+    public APIDeploymentState mpDeploymentService(@PathVariable String org,
+                                                  @PathVariable String env,
+                                                  @PathVariable String api,
+                                                  @PathVariable String revision) throws IOException {
+        APIDeploymentState apiDeploymentState = null;
+
+        try {
+
+            MPAPIDeployInfoService mpAPIDeployInfoService = new
+                    MPAPIDeployInfoService(org, env, api, revision);
+
+            apiDeploymentState = mpAPIDeployInfoService.getCompleteDeploymentInfoOnAllMPs();
+            mpAPIDeployInfoService.close();
 
         } catch (IllegalArgumentException iae) {
             throw new ResourceNotFoundException(iae.getMessage());
