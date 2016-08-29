@@ -12,23 +12,21 @@ public class APIDeploymentState {
     private String org;
     private String env;
     private String api;
-    private String revision;
+    private Revision[] revision;
     private String state;
     private String spec;
-    private Server[] servers;
+
 
     public APIDeploymentState() {
 
     }
 
-    public APIDeploymentState(String org, String env, String api, String revision, String state, String spec, Server[] servers) {
+    public APIDeploymentState(String org, String env, String api, Revision[] revision, String state) {
         this.org = org;
         this.env = env;
         this.api = api;
         this.revision = revision;
         this.state = state;
-        this.spec = spec;
-        this.servers = servers;
     }
 
     public String getOrg() {
@@ -55,14 +53,6 @@ public class APIDeploymentState {
         this.api = api;
     }
 
-    public String getRevision() {
-        return revision;
-    }
-
-    public void setRevision(String revision) {
-        this.revision = revision;
-    }
-
     public String getState() {
         return state;
     }
@@ -79,12 +69,12 @@ public class APIDeploymentState {
         this.spec = spec;
     }
 
-    public Server[] getServers() {
-        return servers;
+    public Revision[] getRevision() {
+        return revision;
     }
 
-    public void setServers(Server[] servers) {
-        this.servers = servers;
+    public void setRevision(Revision[] revision) {
+        this.revision = revision;
     }
 
     @Override
@@ -94,12 +84,8 @@ public class APIDeploymentState {
         sb.append("organization="+org);
         sb.append(", environment="+env);
         sb.append(", apiproxy="+api);
-        sb.append(", revision="+revision);
         sb.append(", spec="+spec);
         sb.append(", state="+state);
-        for(Server server : servers) {
-            sb.append(", server="+server.toString());
-        }
         sb.append("]");
         return sb.toString();
     }

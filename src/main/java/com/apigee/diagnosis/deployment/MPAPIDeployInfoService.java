@@ -1,19 +1,19 @@
 package com.apigee.diagnosis.deployment;
 
 import com.apigee.diagnosis.beans.APIDeploymentState;
+import com.apigee.diagnosis.beans.Revision;
 import com.apigee.diagnosis.beans.Server;
 import com.apigee.diagnosis.util.RestAPIExecutor;
 import com.apigee.diagnosis.util.XMLResponseParser;
 import com.apigee.diagnosis.zk.ZKClientManager;
-
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -27,7 +27,7 @@ public class MPAPIDeployInfoService {
     private String api;
     private String revision;
 
-    // Znode path upto revision
+    // ZKnode path upto revision
     private String revisionNodePath;
 
     //
@@ -306,7 +306,7 @@ public class MPAPIDeployInfoService {
      * http://<ExternalIPofMP>:8080/v1/runtime/organizations/<org>/environments/<env>/apis/<api>/revisions
      */
     private String getAPIDeployedRevisionOnMP(String externalIP)
-            throws IOException {
+            throws Exception {
         LOG.info("Fetching the deployed revision");
 
         String mpAPIDeployURL = "http://" + externalIP +
@@ -318,7 +318,7 @@ public class MPAPIDeployInfoService {
                 "/apis/" + api +
                 "/revisions";
 
-        String apiRevision = RestAPIExecutor.executeGETAPI(mpAPIDeployURL);
+        String apiRevision = RestAPIExecutor.executeGETAPI(mpAPIDeployURL,"dummyuser", "xml");
 
         LOG.info("Deployed revision on MP = " + apiRevision);
         return apiRevision;
@@ -379,8 +379,9 @@ public class MPAPIDeployInfoService {
             }
 
             Server allMPServers[] = mpServersList.toArray(new Server[mpServersList.size()]);
-            apiDeploymentState = new APIDeploymentState(getOrg(), getEnv(),
-                    getApi(), getRevision(), null, null, allMPServers);
+
+            Revision revision = new Revision(getRevision(), allMPServers);
+            apiDeploymentState = new APIDeploymentState(getOrg(), getEnv(), getApi(), new Revision[]{revision}, null);
         }
 
         return apiDeploymentState;

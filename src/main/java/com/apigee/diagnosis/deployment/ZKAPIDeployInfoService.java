@@ -1,16 +1,15 @@
 package com.apigee.diagnosis.deployment;
 
 import com.apigee.diagnosis.beans.APIDeploymentState;
+import com.apigee.diagnosis.beans.Revision;
 import com.apigee.diagnosis.beans.Server;
 import com.apigee.diagnosis.zk.ZKClientManager;
+import org.apache.zookeeper.KeeperException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.List;
-
-import org.apache.zookeeper.KeeperException;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Created by amar on 10/07/16.
@@ -261,8 +260,8 @@ public class ZKAPIDeployInfoService {
         String state = getAPIDeploymentState();
         String spec = getAPISpec();
         Server allServers[] = getAllServersStateofAPI();
-        APIDeploymentState apiDeploymentState = new APIDeploymentState(getOrg(),
-                getEnv(), getApi(), getRevision(), state, spec, allServers);
+        Revision revision = new Revision(getRevision(),allServers);
+        APIDeploymentState apiDeploymentState = new APIDeploymentState(getOrg(), getEnv(), getApi(),new Revision[]{revision}, state);
         return apiDeploymentState;
     }
 
