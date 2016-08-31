@@ -1,6 +1,7 @@
 package com.apigee.diagnosis.service;
 
 import com.apigee.diagnosis.beans.APIDeploymentState;
+import com.apigee.diagnosis.deployment.DeploymentAPIService;
 import com.apigee.diagnosis.deployment.ZKAPIDeployInfoService;
 import com.apigee.diagnosis.deployment.MPAPIDeployInfoService;
 import org.springframework.http.HttpStatus;
@@ -16,9 +17,9 @@ import java.io.IOException;
 public class DeploymentService {
     @RequestMapping(value = "/v1/diagnosis/zkdeploymentinfo/organizations/{org}/environments/{env}/apis/{api}/revisions/{revision}/status", produces = "application/json")
     public APIDeploymentState zkDeploymentService(@PathVariable String org,
-                                      @PathVariable String env,
-                                      @PathVariable String api,
-                                      @PathVariable String revision) throws IOException {
+                                                  @PathVariable String env,
+                                                  @PathVariable String api,
+                                                  @PathVariable String revision) throws IOException {
         APIDeploymentState apiDeploymentState = null;
 
         try {
@@ -50,6 +51,25 @@ public class DeploymentService {
 
             apiDeploymentState = mpAPIDeployInfoService.getCompleteDeploymentInfoOnAllMPs();
             mpAPIDeployInfoService.close();
+
+        } catch (IllegalArgumentException iae) {
+            throw new ResourceNotFoundException(iae.getMessage());
+        } catch (Exception e) {
+            throw new ZKAPIDeployServiceException(e.getMessage());
+        }
+        return apiDeploymentState;
+    }
+
+    @RequestMapping(value = "/v1/diagnosis/deploymentinfo/organizations/{org}/environments/{env}/apis/{api}/revisions/{revision}/status", produces = "application/json")
+    public APIDeploymentState deploymentService(@PathVariable String org,
+                                                @PathVariable String env,
+                                                @PathVariable String api,
+                                                @PathVariable String revision) throws IOException {
+        APIDeploymentState apiDeploymentState = null;
+        try {
+            DeploymentAPIService deploymentAPIService = new DeploymentAPIService(org,env,api,revision);
+
+            apiDeploymentState = deploymentAPIService.getDeploymentStatus(org,env,api,revision);
 
         } catch (IllegalArgumentException iae) {
             throw new ResourceNotFoundException(iae.getMessage());
