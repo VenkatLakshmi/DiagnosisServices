@@ -8,6 +8,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Server {
 
+    private String hostname;
     private String uuid;
     private String status;
     private String errorcode;
@@ -17,11 +18,20 @@ public class Server {
 
     }
 
-    public Server(String uuid, String status, String errorcode, String errormessage) {
+    public Server(String hostname, String uuid, String status, String errorcode, String errormessage) {
+        this.hostname = hostname;
         this.uuid = uuid;
         this.status = status;
         this.errorcode = errorcode;
         this.errormessage = errormessage;
+    }
+
+    public String getHostname() {
+        return hostname;
+    }
+
+    public void setHostname(String hostname) {
+        this.hostname = hostname;
     }
 
     public String getUuid() {
@@ -58,7 +68,7 @@ public class Server {
 
     @Override
     public String toString() {
-        return "Server [uuid=" + uuid + " status=" + status + " errorcode=" + errorcode + " errormessage=" + errormessage + "]";
+        return "Server [hostname = " + hostname + " uuid=" + uuid + " status=" + status + " errorcode=" + errorcode + " errormessage=" + errormessage + "]";
     }
 
 }
