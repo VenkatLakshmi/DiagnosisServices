@@ -400,7 +400,7 @@ public class MPAPIDeployInfoService {
             Server allMPServers[] = mpServersList.toArray(new Server[mpServersList.size()]);
 
             Revision revision = new Revision(getRevision(), allMPServers);
-            apiDeploymentState = new APIDeploymentState(getOrg(), getEnv(), getApi(), new Revision[]{revision}, null);
+            apiDeploymentState = new APIDeploymentState(getOrg(), getEnv(), getApi(), new Revision[]{revision}, null );
         }
 
         return apiDeploymentState;

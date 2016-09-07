@@ -261,7 +261,7 @@ public class ZKAPIDeployInfoService {
         String spec = getAPISpec();
         Server allServers[] = getAllServersStateofAPI();
         Revision revision = new Revision(getRevision(),allServers);
-        APIDeploymentState apiDeploymentState = new APIDeploymentState(getOrg(), getEnv(), getApi(),new Revision[]{revision}, state);
+        APIDeploymentState apiDeploymentState = new APIDeploymentState(getOrg(), getEnv(), getApi(),new Revision[]{revision}, null);
         return apiDeploymentState;
     }
 

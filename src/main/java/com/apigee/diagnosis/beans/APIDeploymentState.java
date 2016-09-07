@@ -13,20 +13,18 @@ public class APIDeploymentState {
     private String env;
     private String api;
     private Revision[] revision;
-    private String state;
-    private String spec;
-
+    private Report[] report;
 
     public APIDeploymentState() {
 
     }
 
-    public APIDeploymentState(String org, String env, String api, Revision[] revision, String state) {
+    public APIDeploymentState(String org, String env, String api, Revision[] revision, Report[] report) {
         this.org = org;
         this.env = env;
         this.api = api;
         this.revision = revision;
-        this.state = state;
+        this.report = report;
     }
 
     public String getOrg() {
@@ -53,28 +51,20 @@ public class APIDeploymentState {
         this.api = api;
     }
 
-    public String getState() {
-        return state;
-    }
-
-    public void setState(String state) {
-        this.state = state;
-    }
-
-    public String getSpec() {
-        return spec;
-    }
-
-    public void setSpec(String spec) {
-        this.spec = spec;
-    }
-
     public Revision[] getRevision() {
         return revision;
     }
 
     public void setRevision(Revision[] revision) {
         this.revision = revision;
+    }
+
+    public Report[] getReport() {
+        return report;
+    }
+
+    public void setReport(Report[] report) {
+        this.report = report;
     }
 
     @Override
@@ -84,8 +74,6 @@ public class APIDeploymentState {
         sb.append("organization="+org);
         sb.append(", environment="+env);
         sb.append(", apiproxy="+api);
-        sb.append(", spec="+spec);
-        sb.append(", state="+state);
         sb.append("]");
         return sb.toString();
     }

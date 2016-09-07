@@ -136,7 +136,7 @@ public class DeploymentAPIService {
                         if (status == MISMATCH) {
                             errorMessage = "Ideal State:" + mgmtStatus + " MP State:" + mpStatus;
                         }
-                        return new Server(mpServer, status, null, errorMessage);
+                        return new Server(serverObj2.getJSONObject(j).getString("hostname"),mpServer, status, null, errorMessage);
                     }
                     j++;
                 }
@@ -150,13 +150,14 @@ public class DeploymentAPIService {
         int j = 0;
         while (j < serverObj2.length()) {
             if (serverObj2.getJSONObject(j).getString("uuid").equalsIgnoreCase(mpServer)) {
-                String mpStatus = serverObj2.getJSONObject(j).getString("status").equalsIgnoreCase("success") ? DEPLOYED : UNDEPLOYED;
+                //String mpStatus = serverObj2.getJSONObject(j).getString("status").equalsIgnoreCase("success") ? DEPLOYED : UNDEPLOYED;
+                String mpStatus = serverObj2.getJSONObject(j).getString("status");
                 status = mgmtStatus.equalsIgnoreCase(mpStatus) ? SYNC : MISMATCH;
                 String errorMessage = null;
                 if (status == MISMATCH) {
                     errorMessage = "Ideal State:" + mgmtStatus + " MP State:" + mpStatus;
                 }
-                return new Server(mpServer, status, null, errorMessage);
+                return new Server(serverObj2.getJSONObject(j).getString("hostname"),mpServer, status, null, errorMessage);
             }
             j++;
         }
