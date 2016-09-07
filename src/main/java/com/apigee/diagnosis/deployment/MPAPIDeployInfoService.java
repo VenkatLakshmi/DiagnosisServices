@@ -47,6 +47,7 @@ public class MPAPIDeployInfoService {
     private final static String SERVERS_NODE = "servers";
     private final static String INTERNAL_IP_NODE = "InternalIP";
     private final static String EXTERNAL_IP_NODE = "ExternalIP";
+    private final static String EXTERNAL_HOSTNAME_NODE = "ExternalHostName";
 
     private final static String V1 = "v1";
     private final static String RUNTIME = "runtime";
@@ -84,10 +85,6 @@ public class MPAPIDeployInfoService {
         this.org = org;
         this.env = env;
         this.api = api;
-        this.revisionNodePath = "/organizations/" + org +
-                "/environments/" + env +
-                "/apiproxies/" + api +
-                "/revisions";
 
         // open the connection with Zookeeper Ensemble
         initialize();
@@ -147,7 +144,7 @@ public class MPAPIDeployInfoService {
 
     /*
      * Checks if all the input arguments are valid
-     *    - checkRevision indicates if we need to validate revision or not
+     *
      */
     private void validateInputArguments() throws KeeperException,
             InterruptedException, IllegalArgumentException {
@@ -300,6 +297,26 @@ public class MPAPIDeployInfoService {
     }
 
     /*
+     * Gets the ExternalHostName for the specific MP
+     * ExternalIP node path:
+     *     /regions/<region-name>/pods/<pod-name>/servers/<server-uuid>/ExternalHostName
+     */
+    private String getMPExternalHostName(String region, String pod,
+                                   String mpUUID) throws KeeperException,
+            InterruptedException {
+        LOG.info("Fetching the External HostName of the MP " + mpUUID);
+
+        String externalIPPath = "/" + REGIONS_NODE + "/" + region +
+                "/" + PODS_NODE + "/" + pod +
+                "/" + SERVERS_NODE + "/" + mpUUID +
+                "/" + EXTERNAL_HOSTNAME_NODE;
+        String externalIP = zkClientManager.getZNodeData(externalIPPath);
+
+        LOG.info("MP External HostName retrieved");
+        return externalIP;
+    }
+
+    /*
      * Gets the deployed revision of the specific API on MP
      *
      * URL:
@@ -330,7 +347,8 @@ public class MPAPIDeployInfoService {
      *     1. Server UUID
      *     2. Internal IP
      *     3. External IP
-     *     4. Deployment State of the API
+     *     4. External HostName
+     *     5. Deployment State of the API
      */
     public APIDeploymentState getCompleteDeploymentInfoOnAllMPs() throws IOException,
             KeeperException, InterruptedException, Exception {
@@ -354,11 +372,12 @@ public class MPAPIDeployInfoService {
                 for (String mpUUID: mpsUUIDs) {
                     String internalIP = getMPInternalIP(region, pod, mpUUID);
                     String externalIP = getMPExternalIP(region, pod, mpUUID);
+                    String externalHostName = getMPExternalHostName(region, pod, mpUUID);
 
                     // Run the API on the MP to get the revision deployed for the specific API
                     String xmlResponse = getAPIDeployedRevisionOnMP(externalIP);
                     ArrayList<String> deployedRevisionsList = XMLResponseParser.getItemListFromXMLResponse(xmlResponse);
-                    String apiDeployedState = "failure";
+                    String apiDeployedState = "undeployed";
                     if (deployedRevisionsList != null
                             && !deployedRevisionsList.isEmpty()) {
                         String apiDeployedRevisionOnMP = deployedRevisionsList.get(0);
@@ -368,12 +387,12 @@ public class MPAPIDeployInfoService {
                         if ((apiDeployedRevisionOnMP != null) &&
                                 !(apiDeployedRevisionOnMP.isEmpty()) &&
                                 apiDeployedRevisionOnMP.equals(this.revision)) {
-                            apiDeployedState = "success";
+                            apiDeployedState = "deployed";
                         }
                     }
                     LOG.info("apiDeployedState = " + apiDeployedState);
 
-                    Server mpServer = new Server(mpUUID, apiDeployedState, null, null);
+                    Server mpServer = new Server(externalHostName, mpUUID, apiDeployedState, null, null);
                     mpServersList.add(mpServer);
                 }
             }

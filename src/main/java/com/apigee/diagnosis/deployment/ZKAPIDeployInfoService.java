@@ -243,10 +243,10 @@ public class ZKAPIDeployInfoService {
                             + SERVERS_ERRORMESSAGE_NODE;
                     errormessage = zkClientManager.getZNodeData(apiServerErrorMessagePath);
                     // add it to the server
-                    server = new Server(serverUUID, status, errorcode, errormessage);
+                    server = new Server(null, serverUUID, status, errorcode, errormessage);
 
                 } else {
-                    server = new Server(serverUUID, status, null, null);
+                    server = new Server(null, serverUUID, status, null, null);
                 }
                 allServers[serverIndex++] = server;
             }
