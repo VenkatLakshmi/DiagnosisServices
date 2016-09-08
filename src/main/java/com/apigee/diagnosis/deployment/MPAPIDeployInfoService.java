@@ -27,9 +27,6 @@ public class MPAPIDeployInfoService {
     private String api;
     private String revision;
 
-    // ZKnode path upto revision
-    private String revisionNodePath;
-
     //
     private boolean inputValid = false;
 
@@ -114,10 +111,6 @@ public class MPAPIDeployInfoService {
         this.env = env;
         this.api = api;
         this.revision = revision;
-        this.revisionNodePath = "/organizations/" + org +
-                "/environments/" + env +
-                "/apiproxies/" + api +
-                "/revisions/" + revision;
 
         // open the connection with Zookeeper Ensemble
         initialize();
@@ -317,6 +310,27 @@ public class MPAPIDeployInfoService {
     }
 
     /*
+     * Gets all the revisions of the API Proxy for the specific organization
+     * and environment set in this class
+     * revisions node path:
+     *     /organizations/<org>/environments/<env>/apis/<api>/regions
+     */
+    private List<String> getAllRevisionsOfAPIForOrgAndEnv() throws KeeperException,
+            InterruptedException {
+        LOG.info("Fetching the revisions");
+
+        String revisionsPath = "/organizations/" + org +
+                "/environments/" + env +
+                "/apiproxies/" + api +
+                "/revisions";
+        List<String> revisions = zkClientManager.getZNodeChildren(revisionsPath);
+
+        LOG.info("Revisions retrieved " + revisions);
+        return revisions;
+    }
+
+
+    /*
      * Gets the deployed revision of the specific API on MP
      *
      * URL:
@@ -343,7 +357,7 @@ public class MPAPIDeployInfoService {
 
     /*
      * Gets all the details of all the MPs in the organization and environment
-     * set in this class
+     * and specific revision set in this class
      *     1. Server UUID
      *     2. Internal IP
      *     3. External IP
@@ -359,7 +373,6 @@ public class MPAPIDeployInfoService {
         }
 
         ArrayList<Server> mpServersList = new ArrayList<Server>();
-        APIDeploymentState apiDeploymentState = null;
 
         // traverse through each of the pods in all the regions
         // and retrieve the MP server UUIDs
@@ -380,29 +393,124 @@ public class MPAPIDeployInfoService {
                     String apiDeployedState = "undeployed";
                     if (deployedRevisionsList != null
                             && !deployedRevisionsList.isEmpty()) {
-                        String apiDeployedRevisionOnMP = deployedRevisionsList.get(0);
+                        // On the MP, there's a possibility that multiple revisions can be deployed
+                        // iterate through all the revisions and check if the user specified
+                        // revision is deployed or not
+                        for (String apiDeployedRevisionOnMP: deployedRevisionsList) {
+                            LOG.info("apiDeployedRevisionOnMP = " + apiDeployedRevisionOnMP);
 
-                        LOG.info("apiDeployedRevisionOnMP = " + apiDeployedRevisionOnMP);
-
-                        if ((apiDeployedRevisionOnMP != null) &&
-                                !(apiDeployedRevisionOnMP.isEmpty()) &&
-                                apiDeployedRevisionOnMP.equals(this.revision)) {
-                            apiDeployedState = "deployed";
+                            if ((apiDeployedRevisionOnMP != null) &&
+                                    !(apiDeployedRevisionOnMP.isEmpty()) &&
+                                    apiDeployedRevisionOnMP.equals(this.revision)) {
+                                apiDeployedState = "deployed";
+                                LOG.info("apiDeployedRevisionOnMP = " + apiDeployedRevisionOnMP +
+                                        " apiDeployedState = " + apiDeployedState);
+                                break;
+                            }
                         }
                     }
-                    LOG.info("apiDeployedState = " + apiDeployedState);
 
                     Server mpServer = new Server(externalHostName, mpUUID, apiDeployedState, null, null);
                     mpServersList.add(mpServer);
-                }
-            }
+                } // end of MP UUIDs loop
+            } // end of pod loop
+        } // end of region loop
 
+        if (!mpServersList.isEmpty()) {
             Server allMPServers[] = mpServersList.toArray(new Server[mpServersList.size()]);
-
             Revision revision = new Revision(getRevision(), allMPServers);
-            apiDeploymentState = new APIDeploymentState(getOrg(), getEnv(), getApi(), new Revision[]{revision}, null );
+            APIDeploymentState apiDeploymentState = new APIDeploymentState(getOrg(),
+                    getEnv(), getApi(), new Revision[]{revision}, null);
+            return apiDeploymentState;
         }
 
+        return null;
+    }
+
+    /*
+     * Gets all the details of all the MPs in the organization and environment
+     * for all revisions
+     *     1. Server UUID
+     *     2. Internal IP
+     *     3. External IP
+     *     4. External HostName
+     *     5. Deployment State of the API
+     */
+    public APIDeploymentState getCompleteDeploymentInfoOnAllMPsForAllRevisions() throws IOException,
+            KeeperException, InterruptedException, Exception {
+        Map<String, List<String>> regionsAndPodsMap = getRegionsAndPodsForOrgAndEnv();
+
+        if (regionsAndPodsMap == null) {
+            return null;
+        }
+
+        // Get all the revisions of the api for the specific org and env
+        // from the Zookeeper
+        List<String> allRevisions = getAllRevisionsOfAPIForOrgAndEnv();
+
+        if (allRevisions == null) {
+            return null;
+        }
+
+        // Create and initialize arraylist of servers for all revisions
+        Map<String, ArrayList<Server>> mpServersMap = new HashMap<String, ArrayList<Server>>();
+        for (String revision: allRevisions) {
+            mpServersMap.put(revision, new ArrayList<Server>());
+        }
+
+        // traverse through each of the pods in all the regions
+        // and retrieve the MP server UUIDs
+        for(Entry<String, List<String>> entry : regionsAndPodsMap.entrySet()){
+            String region = entry.getKey();
+            for (String pod: entry.getValue()) {
+                List <String> mpsUUIDs = getMPServerUUIDsInPod(region, pod);
+                // For each of the MP servers, fetch the internal, external IP addresses
+                // external HostName and deployed revision of the API on the MP
+                for (String mpUUID: mpsUUIDs) {
+                    String internalIP = getMPInternalIP(region, pod, mpUUID);
+                    String externalIP = getMPExternalIP(region, pod, mpUUID);
+                    String externalHostName = getMPExternalHostName(region, pod, mpUUID);
+
+                    // Run the API on the MP to get the revisions deployed for the specific API
+                    String xmlResponse = getAPIDeployedRevisionOnMP(externalIP);
+                    ArrayList<String> deployedRevisionsList = XMLResponseParser.getItemListFromXMLResponse(xmlResponse);
+                    for(String revision: allRevisions) {
+                        String apiDeployedState = "undeployed";
+                        if (deployedRevisionsList != null
+                                && !deployedRevisionsList.isEmpty()) {
+                            // On the MP, there's a possibility that multiple revisions can be deployed
+                            // iterate through all the revisions and check if the specific revision
+                            // is deployed or not
+                            for (String apiDeployedRevisionOnMP : deployedRevisionsList) {
+                                LOG.info("apiDeployedRevisionOnMP = " + apiDeployedRevisionOnMP);
+
+                                if ((apiDeployedRevisionOnMP != null) &&
+                                        !(apiDeployedRevisionOnMP.isEmpty()) &&
+                                        apiDeployedRevisionOnMP.equals(revision)) {
+                                    apiDeployedState = "deployed";
+                                    LOG.info("apiDeployedRevisionOnMP = " + apiDeployedRevisionOnMP +
+                                            " apiDeployedState = " + apiDeployedState);
+                                    break;
+                                }
+                            }
+                        }
+                        Server mpServer = new Server(externalHostName, mpUUID, apiDeployedState, null, null);
+                        ArrayList<Server> mpServersList = mpServersMap.get(revision);
+                        mpServersList.add(mpServer);
+                    }
+                } // end of MP UUIDs loop
+            } // end of pod loop
+        } // end of region loop
+
+        Revision revisions[] = new Revision[allRevisions.size()];
+        int revisionIndex = 0;
+        for (String revision: allRevisions) {
+            ArrayList<Server> mpServersList = mpServersMap.get(revision);
+            Server allMPServers[] = mpServersList.toArray(new Server[mpServersList.size()]);
+            revisions[revisionIndex++] = new Revision(revision, allMPServers);
+        }
+        APIDeploymentState apiDeploymentState = new APIDeploymentState(getOrg(),
+                getEnv(), getApi(), revisions, null);
         return apiDeploymentState;
     }
 

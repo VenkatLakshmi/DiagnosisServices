@@ -60,6 +60,28 @@ public class DeploymentService {
         return apiDeploymentState;
     }
 
+    @RequestMapping(value = "/v1/diagnosis/mpdeploymentinfo/organizations/{org}/environments/{env}/apis/{api}/status", produces = "application/json")
+    public APIDeploymentState mpDeploymentServiceMultipleRevisions(@PathVariable String org,
+                                                  @PathVariable String env,
+                                                  @PathVariable String api) throws IOException {
+        APIDeploymentState apiDeploymentState = null;
+
+        try {
+
+            MPAPIDeployInfoService mpAPIDeployInfoService = new
+                    MPAPIDeployInfoService(org, env, api);
+
+            apiDeploymentState = mpAPIDeployInfoService.getCompleteDeploymentInfoOnAllMPsForAllRevisions();
+            mpAPIDeployInfoService.close();
+
+        } catch (IllegalArgumentException iae) {
+            throw new ResourceNotFoundException(iae.getMessage());
+        } catch (Exception e) {
+            throw new ZKAPIDeployServiceException(e.getMessage());
+        }
+        return apiDeploymentState;
+    }
+
     @RequestMapping(value = "/v1/diagnosis/deploymentinfo/organizations/{org}/environments/{env}/apis/{api}/revisions/{revision}/status", produces = "application/json")
     public APIDeploymentState deploymentService(@PathVariable String org,
                                                 @PathVariable String env,
