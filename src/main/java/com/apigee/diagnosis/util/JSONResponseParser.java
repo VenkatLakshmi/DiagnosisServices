@@ -2,6 +2,7 @@ package com.apigee.diagnosis.util;
 
 import org.json.JSONArray;
 import org.json.JSONException;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,6 +30,30 @@ public class JSONResponseParser {
             return servers;
         }
         return servers;
+    }
+
+    public static List<String> getRevisions(String mgmtResponse) throws JSONException {
+        List<String> revisions = new ArrayList<String>();
+        try {
+            JSONObject mgmtObject = new JSONObject(mgmtResponse);
+            if (mgmtObject.has("revision") == false) {
+                logger.error("No revisions deployed");
+                return revisions;
+            } else {
+                JSONArray revisionObj = mgmtObject.getJSONArray("revision");
+                if(revisionObj.length() == 0){
+                    logger.error("No revisions deployed");
+                    return revisions;
+                }
+                for(int i=0;i<revisionObj.length();i++) {
+                    revisions.add(revisionObj.getJSONObject(i).getString("name"));
+                }
+            }
+        } catch (JSONException e) {
+            logger.error("Invalid JSON Message");
+            return revisions;
+        }
+        return revisions;
     }
 }
 

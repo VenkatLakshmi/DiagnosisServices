@@ -86,7 +86,7 @@ public class DeploymentService {
     public APIDeploymentState deploymentService(@PathVariable String org,
                                                 @PathVariable String env,
                                                 @PathVariable String api,
-                                                @PathVariable String revision) throws IOException {
+                                                @PathVariable String revision) throws Exception {
         APIDeploymentState apiDeploymentState = null;
         try {
             DeploymentAPIService deploymentAPIService = new DeploymentAPIService(org,env,api,revision);
@@ -96,7 +96,25 @@ public class DeploymentService {
         } catch (IllegalArgumentException iae) {
             throw new ResourceNotFoundException(iae.getMessage());
         } catch (Exception e) {
-            throw new ZKAPIDeployServiceException(e.getMessage());
+            throw e;
+        }
+        return apiDeploymentState;
+    }
+
+    @RequestMapping(value = "/v1/diagnosis/deploymentinfo/organizations/{org}/environments/{env}/apis/{api}/status", produces = "application/json")
+    public APIDeploymentState deploymentService(@PathVariable String org,
+                                                @PathVariable String env,
+                                                @PathVariable String api) throws Exception {
+        APIDeploymentState apiDeploymentState = null;
+        try {
+            DeploymentAPIService deploymentAPIService = new DeploymentAPIService(org,env,api,null);
+
+            apiDeploymentState = deploymentAPIService.getDeploymentStatus(org,env,api,null);
+
+        } catch (IllegalArgumentException iae) {
+            throw new ResourceNotFoundException(iae.getMessage());
+        } catch (Exception e) {
+            throw e;
         }
         return apiDeploymentState;
     }
