@@ -1,9 +1,6 @@
 package com.apigee.diagnosis.deployment;
 
-import com.apigee.diagnosis.beans.APIDeploymentState;
-import com.apigee.diagnosis.beans.Report;
-import com.apigee.diagnosis.beans.Revision;
-import com.apigee.diagnosis.beans.Server;
+import com.apigee.diagnosis.beans.*;
 import com.apigee.diagnosis.util.JSONResponseParser;
 import com.apigee.diagnosis.util.RestAPIExecutor;
 import org.json.JSONArray;
@@ -13,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 
 /**
@@ -34,7 +32,8 @@ public class DeploymentAPIService {
     private static final String PASSWORD = "xnYbykQa7G";
 
     //Report Analysis
-    private List<Report> reports = new ArrayList<Report>();
+    private List<String> causeList = new ArrayList<String>();
+    private List<Resolution> resolutionList = new ArrayList<Resolution>();
 
     private static Logger logger = LoggerFactory.getLogger(DeploymentAPIService.class);
 
@@ -66,7 +65,7 @@ public class DeploymentAPIService {
         //TODO: Validate Org, Env, API and Revision.
     }
 
-    public APIDeploymentState getDeploymentStatus(String org, String env, String api, String revision) throws JSONException {
+    public DiagnosticReport getDeploymentStatus(String org, String env, String api, String revision) throws JSONException {
         List<Revision> revisions = new ArrayList<Revision>();
         if(revision == null) {
             String mgmtStatus = getMgmtDeploymentStatusAPI(org, env, api, revision);
@@ -76,9 +75,49 @@ public class DeploymentAPIService {
         } else {
             revisions.add(getDeploymentStatusForRevision(org, env, api, revision));
         }
+
+        // prepare the diagnosticResults
+        String symptom = null;
+        if (revisions.size() > 1 ) {
+            symptom = DiagnosticMessages.SYMPTOM_DEPLOYMENT_MULTIPLE_REVISIONS +
+                    " " + getApi() + " are deployed";
+        }
+        String cause = null;
+        Resolution[] allResolutions = null;
+        if (!causeList.isEmpty()) {
+            // check if there is a single issue or multiple issues
+            List<String> uniqueCauseList = new ArrayList<String>(new HashSet<String>( causeList ));
+
+            // check if there is a single issue or multiple issues
+            if (uniqueCauseList.size() == 1) {
+                cause = uniqueCauseList.get(0);
+                allResolutions = new Resolution[1];
+                allResolutions[0] = resolutionList.get(0);
+            } else {
+                cause = uniqueCauseList.toString();
+                allResolutions = resolutionList.toArray(new Resolution[resolutionList.size()]);
+            }
+        } else {
+            // If no problems found
+            symptom = DiagnosticMessages.SYMPTOM_NO_PROBLEM;
+            cause = DiagnosticMessages.SYMPTOM_NO_PROBLEM;
+            allResolutions = new Resolution[1];
+            allResolutions[0] = new Resolution(DiagnosticMessages.PROBLEMSUMMARY_NO_PROBLEM,
+                    DiagnosticMessages.RESOLUTION_NO_ACTION_REQUIRED);
+        }
+
         Revision[] allRevisions = revisions.toArray(new Revision[revisions.size()]);
-        Report[] allReports = reports.toArray(new Report[reports.size()]);
-        return new APIDeploymentState(getOrg(), getEnv(), getApi(), allRevisions , allReports);
+        Details details = new Details(allRevisions);
+        DiagnosticInformation diagnosticInformation = new DiagnosticInformation(symptom, cause,
+                details, allResolutions);
+
+        // prepare the diagnosticReport
+        APIInformation apiInformation = new APIInformation(getOrg(), getEnv(), getApi());
+        DiagnosticReport diagnosticReport = new DiagnosticReport(DiagnosticMessages.DESCRIPTION_DEPLOYMENT_REPORT,
+                apiInformation, diagnosticInformation);
+
+        return diagnosticReport;
+
     }
 
     private Revision getDeploymentStatusForRevision(String org, String env, String api, String revision) {
@@ -90,7 +129,7 @@ public class DeploymentAPIService {
 
         logger.info("MGMT Response : " + mgmtResponse);
 
-        //Check Mgmt API Deployment Status
+        // Check Mgmt API Deployment Status
         String mgmtStatus = checkMgmtStatus(mgmtResponse);
 
         if (mgmtStatus.equalsIgnoreCase(States.ERROR)) {
@@ -154,7 +193,8 @@ public class DeploymentAPIService {
                         if (status == States.MISMATCH) {
                             errorMessage = "Mgmt State:" + mgmtStatus + " MP States:" + mpStatus;
                             if(serverObj1.getJSONObject(i).has("errorcode") && serverObj1.getJSONObject(i).has("errormessage")) {
-                                reports.add(createReport(serverObj1.getJSONObject(i).getString("errorcode"),serverObj1.getJSONObject(i).getString("errormessage")));
+                                resolutionList.add(createReport(serverObj1.getJSONObject(i).getString("errorcode"),
+                                        serverObj1.getJSONObject(i).getString("errormessage")));
                             }
                         }
                         return new Server(serverObj2.getJSONObject(j).getString("hostname"),mpServer, status, null, errorMessage);
@@ -166,9 +206,9 @@ public class DeploymentAPIService {
         return null;
     }
 
-    private Report createReport(String errorCode, String errorMessage) {
+    private Resolution createReport(String errorCode, String errorMessage) {
         //TODO : Recommend engine
-        return new Report(errorCode,errorMessage);
+        return new Resolution(errorCode,errorMessage);
     }
 
 
@@ -181,16 +221,52 @@ public class DeploymentAPIService {
                 status = mgmtStatus.equalsIgnoreCase(mpStatus) ? States.SYNC : States.MISMATCH;
                 String errorMessage = null;
                 if (status == States.MISMATCH) {
-                    errorMessage = "Mgmt States:" + mgmtStatus + " MP States:" + mpStatus;
+                    errorMessage = "Deployment state on Management Server: " + mgmtStatus + " and on Message Processor: " + mpStatus;
                 }
-                if(mgmtStatus.equalsIgnoreCase(States.MISSING) && mpStatus.equalsIgnoreCase(States.UNDEPLOYED)){
-                    reports.add(new Report(Reasons.STATUS_MISMATCH + "on Apiproxy" + api + "revision" + revision ,Recommendations.UNDEPLOY_REVISION));
-                }
-                return new Server(serverObj2.getJSONObject(j).getString("hostname"),mpServer, status, null, errorMessage);
+                compareDeploymentStatesAndPrepareResolution(mgmtStatus, mpStatus, revision);
+                return new Server(serverObj2.getJSONObject(j).getString("hostname"), mpServer, status, null, errorMessage);
             }
             j++;
         }
         return null;
+    }
+
+    private void compareDeploymentStatesAndPrepareResolution(String mgmtStatus,
+                                                               String mpStatus,
+                                                               String revision) {
+
+        logger.info("compareDeploymentStatesAndPrepareResolution - mgmtStatus = " + mgmtStatus + " mpStatus = " + mpStatus);
+        String cause = null;
+        String recommendedAction = null;
+        switch(mgmtStatus) {
+            case States.DEPLOYED:
+                if (mpStatus.equalsIgnoreCase(States.UNDEPLOYED)) {
+                    cause = DiagnosticMessages.PROBLEMSUMMARY_DEPLOYMENT_STATUS_MISMATCH + " " + revision;
+                    recommendedAction = DiagnosticMessages.RESOLUTION_UNDEPLOY_REVISION + " " + revision;
+                    causeList.add(cause);
+                    resolutionList.add(new Resolution(cause, recommendedAction));
+                }
+                break;
+            case States.UNDEPLOYED:
+                if (mpStatus.equalsIgnoreCase(States.DEPLOYED)) {
+                    cause = DiagnosticMessages.PROBLEMSUMMARY_DEPLOYMENT_STATUS_MISMATCH + " " + revision;
+                    recommendedAction = DiagnosticMessages.RESOLUTION_UNDEPLOY_REVISION + " " + revision;
+                    causeList.add(cause);
+                    resolutionList.add(new Resolution(cause, recommendedAction));
+                }
+                break;
+            case States.MISSING:
+                if (mpStatus.equalsIgnoreCase(States.UNDEPLOYED)) {
+                    cause = DiagnosticMessages.PROBLEMSUMMARY_STALE_ENTRY + " " + revision;
+                    recommendedAction = DiagnosticMessages.RESOLUTION_UNDEPLOY_REVISION + " " + revision;
+                    causeList.add(cause);
+                    resolutionList.add(new Resolution(cause, recommendedAction));
+                }
+                break;
+            default:
+                break;
+        }
+
     }
 
     private String checkMgmtStatus(String jsonResponse) {
@@ -225,9 +301,9 @@ public class DeploymentAPIService {
         String mpAPIDeployURL = new String();
         String apiDeploymentStatus = new String();
         if (revision == null) {
-            mpAPIDeployURL = "http://" + LOCAL_URL + "/v1/diagnosis/mpdeploymentinfo/organizations/" + org + "/environments/" + env + "/apis/" + api + "/status";
+            mpAPIDeployURL = "http://" + LOCAL_URL + "/v1/diagnosis/organizations/" + org + "/environments/" + env + "/apis/" + api + "/mpdeployments";
         } else {
-            mpAPIDeployURL = "http://" + LOCAL_URL + "/v1/diagnosis/mpdeploymentinfo/organizations/" + org + "/environments/" + env + "/apis/" + api + "/revisions/" + revision + "/status";
+            mpAPIDeployURL = "http://" + LOCAL_URL + "/v1/diagnosis/organizations/" + org + "/environments/" + env + "/apis/" + api + "/revisions/" + revision + "/mpdeployments";
         }
         try {
             logger.info(mpAPIDeployURL);

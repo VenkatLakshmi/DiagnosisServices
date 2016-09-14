@@ -1,6 +1,7 @@
 package com.apigee.diagnosis.service;
 
 import com.apigee.diagnosis.beans.APIDeploymentState;
+import com.apigee.diagnosis.beans.DiagnosticReport;
 import com.apigee.diagnosis.deployment.DeploymentAPIService;
 import com.apigee.diagnosis.deployment.ZKAPIDeployInfoService;
 import com.apigee.diagnosis.deployment.MPAPIDeployInfoService;
@@ -15,7 +16,7 @@ import java.io.IOException;
  */
 @RestController
 public class DeploymentService {
-    @RequestMapping(value = "/v1/diagnosis/zkdeploymentinfo/organizations/{org}/environments/{env}/apis/{api}/revisions/{revision}/status", produces = "application/json")
+    @RequestMapping(value = "/v1/diagnosis/organizations/{org}/environments/{env}/apis/{api}/revisions/{revision}/zkdeployments", produces = "application/json")
     public APIDeploymentState zkDeploymentService(@PathVariable String org,
                                                   @PathVariable String env,
                                                   @PathVariable String api,
@@ -37,7 +38,7 @@ public class DeploymentService {
         return apiDeploymentState;
     }
 
-    @RequestMapping(value = "/v1/diagnosis/mpdeploymentinfo/organizations/{org}/environments/{env}/apis/{api}/revisions/{revision}/status", produces = "application/json")
+    @RequestMapping(value = "/v1/diagnosis/organizations/{org}/environments/{env}/apis/{api}/revisions/{revision}/mpdeployments", produces = "application/json")
     public APIDeploymentState mpDeploymentService(@PathVariable String org,
                                                   @PathVariable String env,
                                                   @PathVariable String api,
@@ -60,8 +61,8 @@ public class DeploymentService {
         return apiDeploymentState;
     }
 
-    @RequestMapping(value = "/v1/diagnosis/mpdeploymentinfo/organizations/{org}/environments/{env}/apis/{api}/status", produces = "application/json")
-    public APIDeploymentState mpDeploymentServiceMultipleRevisions(@PathVariable String org,
+    @RequestMapping(value = "/v1/diagnosis/organizations/{org}/environments/{env}/apis/{api}/mpdeployments", produces = "application/json")
+    public APIDeploymentState mpDeploymentService(@PathVariable String org,
                                                   @PathVariable String env,
                                                   @PathVariable String api) throws IOException {
         APIDeploymentState apiDeploymentState = null;
@@ -82,41 +83,41 @@ public class DeploymentService {
         return apiDeploymentState;
     }
 
-    @RequestMapping(value = "/v1/diagnosis/deploymentinfo/organizations/{org}/environments/{env}/apis/{api}/revisions/{revision}/status", produces = "application/json")
-    public APIDeploymentState deploymentService(@PathVariable String org,
+    @RequestMapping(value = "/v1/diagnosis/organizations/{org}/environments/{env}/apis/{api}/revisions/{revision}/deployments", produces = "application/json")
+    public DiagnosticReport deploymentService(@PathVariable String org,
                                                 @PathVariable String env,
                                                 @PathVariable String api,
                                                 @PathVariable String revision) throws Exception {
-        APIDeploymentState apiDeploymentState = null;
+        DiagnosticReport diagnosticReport = null;
         try {
             DeploymentAPIService deploymentAPIService = new DeploymentAPIService(org,env,api,revision);
 
-            apiDeploymentState = deploymentAPIService.getDeploymentStatus(org,env,api,revision);
+            diagnosticReport = deploymentAPIService.getDeploymentStatus(org,env,api,revision);
 
         } catch (IllegalArgumentException iae) {
             throw new ResourceNotFoundException(iae.getMessage());
         } catch (Exception e) {
             throw e;
         }
-        return apiDeploymentState;
+        return diagnosticReport;
     }
 
-    @RequestMapping(value = "/v1/diagnosis/deploymentinfo/organizations/{org}/environments/{env}/apis/{api}/status", produces = "application/json")
-    public APIDeploymentState deploymentService(@PathVariable String org,
+    @RequestMapping(value = "/v1/diagnosis/organizations/{org}/environments/{env}/apis/{api}/deployments", produces = "application/json")
+    public DiagnosticReport deploymentService(@PathVariable String org,
                                                 @PathVariable String env,
                                                 @PathVariable String api) throws Exception {
-        APIDeploymentState apiDeploymentState = null;
+        DiagnosticReport diagnosticReport = null;
         try {
             DeploymentAPIService deploymentAPIService = new DeploymentAPIService(org,env,api,null);
 
-            apiDeploymentState = deploymentAPIService.getDeploymentStatus(org,env,api,null);
+            diagnosticReport = deploymentAPIService.getDeploymentStatus(org,env,api,null);
 
         } catch (IllegalArgumentException iae) {
             throw new ResourceNotFoundException(iae.getMessage());
         } catch (Exception e) {
             throw e;
         }
-        return apiDeploymentState;
+        return diagnosticReport;
     }
 }
 

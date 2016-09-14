@@ -33,8 +33,9 @@ public class MPAPIDeployInfoService {
     // instance of ZKClientManager
     private ZKClientManager zkClientManager;
 
-    // czk01apigee (US EAST)
-    private final static String ZK_SERVER_ENSEMBLE = "192.168.11.13";
+    // czk01apigee (US EAST), czk04apigee (US WEST), czk060sy (AP SOUTHEAST), czk21eu (EU)
+    private final static String ZK_SERVER_ENSEMBLE = "192.168.11.13,192.168.41.159,10.10.30.17,192.168.73.241";
+    //private final static String ZK_SERVER_ENSEMBLE = initializeZKHosts();
 
     // Znode names
     private final static String REGIONS_NODE = "regions";
@@ -51,6 +52,12 @@ public class MPAPIDeployInfoService {
     private final static String MP_PORT_NUMBER = "8080";
     // LOG instance
     private static Logger LOG = LoggerFactory.getLogger(ZKAPIDeployInfoService.class);
+
+    private static String initializeZKHosts() {
+        String zkHosts = System.getProperty("zookeeper.hosts");
+        LOG.info("ZK Hosts = " + zkHosts);
+        return zkHosts;
+    }
 
     public String getOrg(){
         return org;
