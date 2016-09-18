@@ -2,6 +2,7 @@ package com.apigee.diagnosis.service;
 
 import com.apigee.diagnosis.beans.APIDeploymentState;
 import com.apigee.diagnosis.beans.DiagnosticReport;
+import com.apigee.diagnosis.beans.MPAPIDeploymentReport;
 import com.apigee.diagnosis.deployment.DeploymentAPIService;
 import com.apigee.diagnosis.deployment.ZKAPIDeployInfoService;
 import com.apigee.diagnosis.deployment.MPAPIDeployInfoService;
@@ -39,40 +40,18 @@ public class DeploymentService {
     }
 
     @RequestMapping(value = "/v1/diagnosis/organizations/{org}/environments/{env}/apis/{api}/revisions/{revision}/mpdeployments", produces = "application/json")
-    public APIDeploymentState mpDeploymentService(@PathVariable String org,
+    public MPAPIDeploymentReport mpDeploymentService(@PathVariable String org,
                                                   @PathVariable String env,
                                                   @PathVariable String api,
                                                   @PathVariable String revision) throws IOException {
-        APIDeploymentState apiDeploymentState = null;
-
-        try {
-
-            MPAPIDeployInfoService mpAPIDeployInfoService = new
-                    MPAPIDeployInfoService(org, env, api, revision);
-
-            apiDeploymentState = mpAPIDeployInfoService.getCompleteDeploymentInfoOnAllMPs();
-            mpAPIDeployInfoService.close();
-
-        } catch (IllegalArgumentException iae) {
-            throw new ResourceNotFoundException(iae.getMessage());
-        } catch (Exception e) {
-            throw new ZKAPIDeployServiceException(e.getMessage());
-        }
-        return apiDeploymentState;
-    }
-
-    @RequestMapping(value = "/v1/diagnosis/organizations/{org}/environments/{env}/apis/{api}/mpdeployments", produces = "application/json")
-    public APIDeploymentState mpDeploymentService(@PathVariable String org,
-                                                  @PathVariable String env,
-                                                  @PathVariable String api) throws IOException {
-        APIDeploymentState apiDeploymentState = null;
+        MPAPIDeploymentReport mpAPIDeploymentReport = null;
 
         try {
 
             MPAPIDeployInfoService mpAPIDeployInfoService = new
                     MPAPIDeployInfoService(org, env, api);
 
-            apiDeploymentState = mpAPIDeployInfoService.getCompleteDeploymentInfoOnAllMPsForAllRevisions();
+            mpAPIDeploymentReport = mpAPIDeployInfoService.getAPIDeploymentInfoOnMPs(revision);
             mpAPIDeployInfoService.close();
 
         } catch (IllegalArgumentException iae) {
@@ -80,7 +59,29 @@ public class DeploymentService {
         } catch (Exception e) {
             throw new ZKAPIDeployServiceException(e.getMessage());
         }
-        return apiDeploymentState;
+        return mpAPIDeploymentReport;
+    }
+
+    @RequestMapping(value = "/v1/diagnosis/organizations/{org}/environments/{env}/apis/{api}/mpdeployments", produces = "application/json")
+    public MPAPIDeploymentReport mpDeploymentService(@PathVariable String org,
+                                                  @PathVariable String env,
+                                                  @PathVariable String api) throws IOException {
+        MPAPIDeploymentReport mpAPIDeploymentReport = null;
+
+        try {
+
+            MPAPIDeployInfoService mpAPIDeployInfoService = new
+                    MPAPIDeployInfoService(org, env, api);
+
+            mpAPIDeploymentReport = mpAPIDeployInfoService.getAPIDeploymentInfoOnMPs();
+            mpAPIDeployInfoService.close();
+
+        } catch (IllegalArgumentException iae) {
+            throw new ResourceNotFoundException(iae.getMessage());
+        } catch (Exception e) {
+            throw new ZKAPIDeployServiceException(e.getMessage());
+        }
+        return mpAPIDeploymentReport;
     }
 
     @RequestMapping(value = "/v1/diagnosis/organizations/{org}/environments/{env}/apis/{api}/revisions/{revision}/deployments", produces = "application/json")
@@ -119,6 +120,7 @@ public class DeploymentService {
         }
         return diagnosticReport;
     }
+    
 }
 
 @ControllerAdvice

@@ -167,7 +167,8 @@ public class DeploymentAPIService {
         List<Server> servers = new ArrayList<Server>();
         try {
             JSONObject mpObj = new JSONObject(mpResponse);
-            JSONObject revObj = (JSONObject) mpObj.getJSONArray("revision").get(0);
+            JSONObject deploymentObj = mpObj.getJSONObject("deploymentInformation");
+            JSONObject revObj = (JSONObject) deploymentObj.getJSONArray("revision").get(0);
             JSONArray serverObj2 = revObj.getJSONArray("servers");
             for (String mpServer : JSONResponseParser.getMessageProcessorList(serverObj2)) {
                 servers.add(processServerStatusSuccessState(mpServer, mgmtStatus, serverObj2, revision));

@@ -1,6 +1,8 @@
 package com.apigee.diagnosis.deployment;
 
-import com.apigee.diagnosis.beans.APIDeploymentState;
+import com.apigee.diagnosis.beans.APIInformation;
+import com.apigee.diagnosis.beans.DeploymentInformation;
+import com.apigee.diagnosis.beans.MPAPIDeploymentReport;
 import com.apigee.diagnosis.beans.Revision;
 import com.apigee.diagnosis.beans.Server;
 import com.apigee.diagnosis.mp.MPManager;
@@ -49,10 +51,6 @@ public class MPAPIDeployInfoService {
         return api;
     }
 
-    public String getRevision(){
-        return revision;
-    }
-
     public MPAPIDeployInfoService(String org, String env, String api)
             throws KeeperException, IOException, InterruptedException {
         if (org == null || env == null || api == null) {
@@ -63,22 +61,6 @@ public class MPAPIDeployInfoService {
         this.org = org;
         this.env = env;
         this.api = api;
-        mpManager = new MPManager();
-    }
-
-    public MPAPIDeployInfoService(String org, String env,
-                                  String api, String revision)
-            throws KeeperException, IOException, InterruptedException {
-        if (org == null || env == null || api == null || revision == null) {
-            throw new IllegalArgumentException (
-                    String.format("Parameters can't be null: " +
-                                    "org=%s, env=%s api=%s revision=%s",
-                            org, env, api, revision));
-        }
-        this.org = org;
-        this.env = env;
-        this.api = api;
-        this.revision = revision;
         mpManager = new MPManager();
     }
 
@@ -125,7 +107,6 @@ public class MPAPIDeployInfoService {
      */
     private String getAPIDeployedRevisionOnMP(String externalIP)
             throws Exception {
-        LOG.info("Fetching the deployed revision");
 
         String mpAPIDeployURL = "http://" + externalIP +
                 ":" + MP_PORT_NUMBER +
@@ -136,6 +117,8 @@ public class MPAPIDeployInfoService {
                 "/apis/" + api +
                 "/revisions";
 
+        LOG.info("Fetching the deployed revision " + mpAPIDeployURL);
+
         String apiRevision = RestAPIExecutor.executeGETAPI(mpAPIDeployURL,"dummyuser", "xml");
 
         LOG.info("Deployed revision on MP = " + apiRevision);
@@ -144,14 +127,14 @@ public class MPAPIDeployInfoService {
 
     /*
      * Gets all the details of all the MPs in the organization and environment
-     * and specific revision set in this class
+     * and specific revision of the API
      *     1. Server UUID
      *     2. Internal IP
      *     3. External IP
      *     4. External HostName
      *     5. Deployment State of the API
      */
-    public APIDeploymentState getCompleteDeploymentInfoOnAllMPs() throws IOException,
+    public MPAPIDeploymentReport getAPIDeploymentInfoOnMPs(String revision) throws IOException,
             KeeperException, InterruptedException, Exception {
         Map<String, List<String>> regionsAndPodsMap =
                 mpManager.getRegionsAndPodsForOrgAndEnv(getOrg(), getEnv());
@@ -189,7 +172,7 @@ public class MPAPIDeployInfoService {
 
                             if ((apiDeployedRevisionOnMP != null) &&
                                     !(apiDeployedRevisionOnMP.isEmpty()) &&
-                                    apiDeployedRevisionOnMP.equals(this.revision)) {
+                                    apiDeployedRevisionOnMP.equals(revision)) {
                                 apiDeployedState = "deployed";
                                 LOG.info("apiDeployedRevisionOnMP = " + apiDeployedRevisionOnMP +
                                         " apiDeployedState = " + apiDeployedState);
@@ -205,11 +188,18 @@ public class MPAPIDeployInfoService {
         } // end of region loop
 
         if (!mpServersList.isEmpty()) {
+            String description = DiagnosticMessages.DESCRIPTION_MP_API_DEPLOYMENT_REPORT;
+            APIInformation apiInformation = new APIInformation(getOrg(), getEnv(), getApi());
+
             Server allMPServers[] = mpServersList.toArray(new Server[mpServersList.size()]);
-            Revision revision = new Revision(getRevision(), allMPServers);
-            APIDeploymentState apiDeploymentState = new APIDeploymentState(getOrg(),
-                    getEnv(), getApi(), new Revision[]{revision}, null);
-            return apiDeploymentState;
+            Revision[] revisions = new Revision[1];
+            revisions[0]= new Revision(revision, allMPServers);
+
+            DeploymentInformation deploymentInformation = new DeploymentInformation(revisions);
+
+            MPAPIDeploymentReport mpAPIDeploymentReport =
+                    new MPAPIDeploymentReport(description, apiInformation, deploymentInformation);
+            return mpAPIDeploymentReport;
         }
 
         return null;
@@ -217,14 +207,14 @@ public class MPAPIDeployInfoService {
 
     /*
      * Gets all the details of all the MPs in the organization and environment
-     * for all revisions
+     * for all revisions of the API
      *     1. Server UUID
      *     2. Internal IP
      *     3. External IP
      *     4. External HostName
      *     5. Deployment State of the API
      */
-    public APIDeploymentState getCompleteDeploymentInfoOnAllMPsForAllRevisions() throws IOException,
+    public MPAPIDeploymentReport getAPIDeploymentInfoOnMPs() throws IOException,
             KeeperException, InterruptedException, Exception {
         Map<String, List<String>> regionsAndPodsMap =
                 mpManager.getRegionsAndPodsForOrgAndEnv(getOrg(), getEnv());
@@ -235,7 +225,8 @@ public class MPAPIDeployInfoService {
 
         // Get all the revisions of the api for the specific org and env
         // from the Zookeeper
-        List<String> allRevisions = mpManager.getAllRevisionsOfAPIForOrgAndEnv(getOrg(), getEnv(), getApi());
+        List<String> allRevisions =
+                mpManager.getAllRevisionsOfAPIForOrgAndEnv(getOrg(), getEnv(), getApi());
 
         if (allRevisions == null) {
             return null;
@@ -262,7 +253,8 @@ public class MPAPIDeployInfoService {
 
                     // Run the API on the MP to get the revisions deployed for the specific API
                     String xmlResponse = getAPIDeployedRevisionOnMP(externalIP);
-                    ArrayList<String> deployedRevisionsList = XMLResponseParser.getItemListFromXMLResponse(xmlResponse);
+                    ArrayList<String> deployedRevisionsList =
+                            XMLResponseParser.getItemListFromXMLResponse(xmlResponse);
                     for(String revision: allRevisions) {
                         String apiDeployedState = "undeployed";
                         if (deployedRevisionsList != null
@@ -291,6 +283,10 @@ public class MPAPIDeployInfoService {
             } // end of pod loop
         } // end of region loop
 
+        // prepare the MPAPIDeploymentReport
+        String description = DiagnosticMessages.DESCRIPTION_MP_API_DEPLOYMENT_REPORT;
+        APIInformation apiInformation = new APIInformation(getOrg(), getEnv(), getApi());
+
         Revision revisions[] = new Revision[allRevisions.size()];
         int revisionIndex = 0;
         for (String revision: allRevisions) {
@@ -298,9 +294,12 @@ public class MPAPIDeployInfoService {
             Server allMPServers[] = mpServersList.toArray(new Server[mpServersList.size()]);
             revisions[revisionIndex++] = new Revision(revision, allMPServers);
         }
-        APIDeploymentState apiDeploymentState = new APIDeploymentState(getOrg(),
-                getEnv(), getApi(), revisions, null);
-        return apiDeploymentState;
+        DeploymentInformation deploymentInformation = new DeploymentInformation(revisions);
+
+        MPAPIDeploymentReport mpAPIDeploymentReport =
+                new MPAPIDeploymentReport(description, apiInformation, deploymentInformation);
+
+        return mpAPIDeploymentReport;
     }
 
     public void close() throws InterruptedException {

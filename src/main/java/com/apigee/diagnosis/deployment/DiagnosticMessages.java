@@ -7,6 +7,7 @@ public class DiagnosticMessages {
 
     // Diagnostic Report Messages
     public static final String DESCRIPTION_DEPLOYMENT_REPORT = "API Deployment Errors Diagnosis Report";
+    public static final String DESCRIPTION_MP_API_DEPLOYMENT_REPORT = "API Deployment Information on Message Processors";
 
     // Problem Symptom Messages
     public static final String SYMPTOM_NO_PROBLEM = "None";
