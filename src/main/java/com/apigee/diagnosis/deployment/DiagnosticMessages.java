@@ -23,4 +23,6 @@ public class DiagnosticMessages {
     public static final String RESOLUTION_UNDEPLOY_REVISION = "Use Management API and undeploy the revision";
     public static final String RESOLUTION_RESTART_MP = "Restart Message Processor Server";
     public static final String RESOLUTION_NO_ACTION_REQUIRED = "No Action Required";
+    public static final String MULTIPLE_REVISION_SAME_BASEPATH = "Multiple Revisions deployed";
+    public static final String RESOLUTION_UNDEPLOY_UNWANTED_REVISION = "Use Management API and undeploy the old revision";
 }

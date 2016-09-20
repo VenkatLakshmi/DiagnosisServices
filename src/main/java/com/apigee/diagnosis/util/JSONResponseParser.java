@@ -55,6 +55,19 @@ public class JSONResponseParser {
         }
         return revisions;
     }
+
+    public static String getBasepath(String mgmtResponse) {
+        String basepath = new String();
+        try {
+            JSONObject mgmtObg = new JSONObject(mgmtResponse);
+            JSONObject connectionObj = mgmtObg.getJSONObject("connection");
+            basepath = connectionObj.getString("basePath");
+        } catch (JSONException e) {
+            logger.error("Invalid JSON Message");
+            return "/";
+        }
+        return basepath;
+    }
 }
 
 

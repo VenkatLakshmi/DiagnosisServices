@@ -1,7 +1,6 @@
 package com.apigee.diagnosis.beans;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import jdk.nashorn.internal.runtime.events.RecompilationEvent;
 
 /**
  * Created by amar on 11/09/16.

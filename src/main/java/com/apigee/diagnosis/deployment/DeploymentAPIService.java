@@ -67,12 +67,14 @@ public class DeploymentAPIService {
 
     public DiagnosticReport getDeploymentStatus(String org, String env, String api, String revision) throws JSONException {
         List<Revision> revisions = new ArrayList<Revision>();
+        List<String> revNos = new ArrayList<String>();
         if(revision == null) {
             String mgmtStatus = getMgmtDeploymentStatusAPI(org, env, api, revision);
-            List<String> revNos = JSONResponseParser.getRevisions(mgmtStatus);
+            revNos = JSONResponseParser.getRevisions(mgmtStatus);
             for(String revNo : revNos)
                 revisions.add(getDeploymentStatusForRevision(org, env, api, revNo));
         } else {
+            revNos.add(revision);
             revisions.add(getDeploymentStatusForRevision(org, env, api, revision));
         }
 
@@ -81,6 +83,7 @@ public class DeploymentAPIService {
         if (revisions.size() > 1 ) {
             symptom = DiagnosticMessages.SYMPTOM_DEPLOYMENT_MULTIPLE_REVISIONS +
                     " " + getApi() + " are deployed";
+            checkBasepath(org, api, revNos);
         }
         String cause = null;
         Resolution[] allResolutions = null;
@@ -118,6 +121,42 @@ public class DeploymentAPIService {
 
         return diagnosticReport;
 
+    }
+
+    private void checkBasepath(String org, String apiproxy, List<String> revisions) {
+        List<String> basepaths = new ArrayList<String>();
+        for(String revNo: revisions) {
+            basepaths.add(getBasePathForRevision(org, apiproxy, revNo));
+        }
+        List<String> uniqueBasePathList = new ArrayList<String>(new HashSet<String>( basepaths ));
+        if(revisions.size() == uniqueBasePathList.size()) {
+            for(String basepath: basepaths)
+                logger.info("basepath:" + basepath);
+            logger.info("Multiple revisions of apiproxy " + apiproxy + " deployed but diferent basepath");
+        } else {
+            StringBuilder sb = new StringBuilder();
+            sb.append(DiagnosticMessages.MULTIPLE_REVISION_SAME_BASEPATH);
+            sb.append(" - ");
+            for(String revNo : revisions)
+                sb.append(revNo + " ");
+            String cause = sb.toString();
+            causeList.add(cause);
+            resolutionList.add(new Resolution(cause, DiagnosticMessages.RESOLUTION_UNDEPLOY_UNWANTED_REVISION));
+        }
+    }
+
+    private String getBasePathForRevision(String org, String apiproxy, String revNo) {
+        String mgmtAPIProxyURL = "https://" + MGMT + "/v1/o/" + org + "/apis/" + apiproxy + "/revisions/" + revNo +"/proxies/default";
+        String basepath = new String();
+        try {
+            logger.info("MGMT DEPLOYMENT API CALL: " + mgmtAPIProxyURL);
+            String mgmtResponse = RestAPIExecutor.executeGETAPI(mgmtAPIProxyURL, USERNAME + ":" + PASSWORD, "json");
+            basepath = JSONResponseParser.getBasepath(mgmtResponse);
+        } catch (Exception e) {
+            logger.error("MGMT returns invalid response");
+            basepath = "/";
+        }
+        return basepath;
     }
 
     private Revision getDeploymentStatusForRevision(String org, String env, String api, String revision) {
