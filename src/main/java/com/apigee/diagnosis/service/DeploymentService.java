@@ -124,7 +124,7 @@ public class DeploymentService {
     }
 
     @RequestMapping(value = "/v1/diagnosis/organizations/{org}/environments/{env}/mpinformation", produces = "application/json")
-    public MPInformationReport mpInformtionServeice(@PathVariable String org,
+    public MPInformationReport mpInformationService(@PathVariable String org,
                                               @PathVariable String env) throws Exception {
         MPInformationReport mpInformationReport = null;
         try {
