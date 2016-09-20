@@ -35,6 +35,7 @@ public class MPManager {
     private final static String INTERNAL_IP_NODE = "InternalIP";
     private final static String EXTERNAL_IP_NODE = "ExternalIP";
     private final static String EXTERNAL_HOSTNAME_NODE = "ExternalHostName";
+    private final static String DATA_NODE = "_data";
 
     // LOG instance
     private static Logger LOG = LoggerFactory.getLogger(MPManager.class);
@@ -189,6 +190,26 @@ public class MPManager {
 
         LOG.info("MP External HostName retrieved");
         return externalIP;
+    }
+
+    /*
+     * Gets the ExternalHostName for the specific MP
+     * ExternalHostName node path:
+     *     /regions/<region-name>/pods/<pod-name>/servers/<server-uuid>/_data
+     */
+    public String getMPData(String region, String pod,
+                                        String mpUUID) throws KeeperException,
+            InterruptedException {
+        LOG.info("Fetching the complete data of the MP " + mpUUID);
+
+        String dataPath = "/" + REGIONS_NODE + "/" + region +
+                "/" + PODS_NODE + "/" + pod +
+                "/" + SERVERS_NODE + "/" + mpUUID +
+                "/" + DATA_NODE;
+        String data = zkClientManager.getZNodeData(dataPath);
+
+        LOG.info("MP Data retrieved");
+        return data;
     }
 
     /*

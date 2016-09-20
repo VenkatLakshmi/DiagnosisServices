@@ -137,7 +137,7 @@ public class DeploymentAPIService {
         } else {
             StringBuilder sb = new StringBuilder();
             sb.append(DiagnosticMessages.PROBLEMSUMMARY_MULTIPLE_REVISION_SAME_BASEPATH);
-            sb.append(" - [");
+            sb.append(" - [ ");
             for(String revNo : revisions)
                 sb.append(revNo + " ");
             sb.append("] with the same base path " + uniqueBasePathList.get(0));

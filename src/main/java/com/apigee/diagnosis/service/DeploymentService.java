@@ -3,9 +3,11 @@ package com.apigee.diagnosis.service;
 import com.apigee.diagnosis.beans.APIDeploymentState;
 import com.apigee.diagnosis.beans.DiagnosticReport;
 import com.apigee.diagnosis.beans.MPAPIDeploymentReport;
+import com.apigee.diagnosis.beans.MPInformationReport;
 import com.apigee.diagnosis.deployment.DeploymentAPIService;
 import com.apigee.diagnosis.deployment.ZKAPIDeployInfoService;
 import com.apigee.diagnosis.deployment.MPAPIDeployInfoService;
+import com.apigee.diagnosis.info.MPInfoService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -119,6 +121,23 @@ public class DeploymentService {
             throw e;
         }
         return diagnosticReport;
+    }
+
+    @RequestMapping(value = "/v1/diagnosis/organizations/{org}/environments/{env}/mpinformation", produces = "application/json")
+    public MPInformationReport mpInformtionServeice(@PathVariable String org,
+                                              @PathVariable String env) throws Exception {
+        MPInformationReport mpInformationReport = null;
+        try {
+            MPInfoService mpInfoService = new MPInfoService();
+
+            mpInformationReport = mpInfoService.getMPInformation(org, env);
+
+        } catch (IllegalArgumentException iae) {
+            throw new ResourceNotFoundException(iae.getMessage());
+        } catch (Exception e) {
+            throw e;
+        }
+        return mpInformationReport;
     }
     
 }

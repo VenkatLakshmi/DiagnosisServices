@@ -3,7 +3,7 @@ package com.apigee.diagnosis.beans;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 /**
- * Created by senthil on 07/09/16.
+ * Created by amar on 07/09/16.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class DiagnosticReport {
