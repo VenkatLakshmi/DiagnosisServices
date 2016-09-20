@@ -136,10 +136,11 @@ public class DeploymentAPIService {
             logger.info("Multiple revisions of apiproxy " + apiproxy + " deployed but diferent basepath");
         } else {
             StringBuilder sb = new StringBuilder();
-            sb.append(DiagnosticMessages.MULTIPLE_REVISION_SAME_BASEPATH);
+            sb.append(DiagnosticMessages.PROBLEMSUMMARY_MULTIPLE_REVISION_SAME_BASEPATH);
             sb.append(" - ");
             for(String revNo : revisions)
                 sb.append(revNo + " ");
+            sb.append("with the same base path " + uniqueBasePathList.get(0));
             String cause = sb.toString();
             causeList.add(cause);
             resolutionList.add(new Resolution(cause, DiagnosticMessages.RESOLUTION_UNDEPLOY_UNWANTED_REVISION));
