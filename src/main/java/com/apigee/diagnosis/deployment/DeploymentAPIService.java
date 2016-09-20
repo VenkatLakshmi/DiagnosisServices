@@ -83,7 +83,8 @@ public class DeploymentAPIService {
         if (revisions.size() > 1 ) {
             symptom = DiagnosticMessages.SYMPTOM_DEPLOYMENT_MULTIPLE_REVISIONS +
                     " " + getApi() + " are deployed";
-            checkBasepath(org, api, revNos);
+            if(causeList.isEmpty())
+                checkBasepath(org, api, revNos);
         }
         String cause = null;
         Resolution[] allResolutions = null;
