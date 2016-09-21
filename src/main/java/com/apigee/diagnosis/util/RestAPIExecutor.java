@@ -1,6 +1,8 @@
 package com.apigee.diagnosis.util;
 
 import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -61,19 +63,32 @@ public class RestAPIExecutor {
         //con.setRequestProperty("Content-Type", "application/json");
         con.setRequestProperty("Accept", "application/"+format);
 
-
-        int responseCode = con.getResponseCode();
-
-        // Process the GET API response
-        BufferedReader in = new BufferedReader(
-                new InputStreamReader(con.getInputStream()));
-        String inputLine;
         StringBuilder response = new StringBuilder();
+        try {
+            int responseCode = con.getResponseCode();
+            InputStream is = (responseCode == HttpURLConnection.HTTP_OK) ?
+                    con.getInputStream() : con.getErrorStream();
 
-        while ((inputLine = in.readLine()) != null) {
-            response.append(inputLine);
+            // Process the GET API response
+            BufferedReader in = new BufferedReader(
+                    new InputStreamReader(is));
+            String inputLine;
+
+            while ((inputLine = in.readLine()) != null) {
+                response.append(inputLine);
+            }
+            in.close();
+        } catch (FileNotFoundException fnfe) {
+            // Process the GET API response
+            BufferedReader err = new BufferedReader(
+                    new InputStreamReader(con.getErrorStream()));
+            String inputLine;
+
+            while ((inputLine = err.readLine()) != null) {
+                response.append(inputLine);
+            }
+            err.close();
         }
-        in.close();
 
         return response.toString();
     }
