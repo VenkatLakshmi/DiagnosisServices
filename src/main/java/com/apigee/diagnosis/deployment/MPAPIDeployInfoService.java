@@ -65,41 +65,6 @@ public class MPAPIDeployInfoService {
     }
 
     /*
-     * Checks if all the input arguments are valid
-     *
-     */
-/*    private void validateInputArguments() throws KeeperException,
-            InterruptedException, IllegalArgumentException {
-
-        LOG.info("Validating Input Arguments");
-        String nodePath = "/organizations/" + org;
-        if (zkClientManager.getZNodeStats(nodePath) == null) {
-            throw new IllegalArgumentException(org + " " + ErrorMessages.ORGANIZATION_DOES_NOT_EXIST);
-        }
-
-        nodePath = nodePath + "/environments/" + env;
-        if (zkClientManager.getZNodeStats(nodePath) == null) {
-            throw new IllegalArgumentException(env +  " " + ErrorMessages.ENVIRONMENT_DOES_NOT_EXIST);
-        }
-
-        nodePath = nodePath + "/apiproxies/" + api;
-        if (zkClientManager.getZNodeStats(nodePath) == null) {
-            throw new IllegalArgumentException(api + " " + ErrorMessages.APIPROXY_DOES_NOT_EXIST);
-        }
-
-        // validate revision only if it is non null value
-        if (revision != null) {
-            nodePath = nodePath + "/revisions/" + revision;
-            if (zkClientManager.getZNodeStats(nodePath) == null) {
-                throw new IllegalArgumentException(revision + " " + ErrorMessages.REVISION_DOES_NOT_EXIST);
-            }
-        }
-
-        inputValid = true;
-        LOG.info("Validation of Input Arguments is complete - Input Arguments are valid");
-    }*/
-
-    /*
      * Gets the deployed revision of the specific API on MP
      *
      * URL:

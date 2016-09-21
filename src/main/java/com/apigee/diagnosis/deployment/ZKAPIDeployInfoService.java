@@ -24,9 +24,6 @@ public class ZKAPIDeployInfoService {
     // Znode path upto revision
     private String revisionNodePath;
 
-    //
-    private boolean inputValid = false;
-
     // instance of ZKClientManager
     private ZKClientManager zkClientManager;
 
@@ -60,10 +57,6 @@ public class ZKAPIDeployInfoService {
         return revision;
     }
 
-    private boolean isInputValid() {
-        return inputValid;
-    }
-
     public ZKAPIDeployInfoService(String org, String env, String api)
             throws KeeperException, IOException, InterruptedException {
         if (org == null || env == null || api == null) {
@@ -81,17 +74,6 @@ public class ZKAPIDeployInfoService {
 
         // open the connection with Zookeeper Ensemble
         initialize();
-
-        try {
-            // validate the arguments
-            validateInputArguments();
-        } catch (InterruptedException ie) {
-            close();
-            throw ie;
-        } catch (IllegalArgumentException iae) {
-            close();
-            throw iae;
-        }
     }
 
     public ZKAPIDeployInfoService(String org, String env,
@@ -114,17 +96,6 @@ public class ZKAPIDeployInfoService {
 
         // open the connection with Zookeeper Ensemble
         initialize();
-
-        // validate the arguments
-        try {
-            validateInputArguments();
-        } catch (InterruptedException ie) {
-            close();
-            throw ie;
-        } catch (IllegalArgumentException iae) {
-            close();
-            throw iae;
-        }
     }
 
     /*
@@ -133,41 +104,6 @@ public class ZKAPIDeployInfoService {
     private void initialize() throws IOException, InterruptedException {
         zkClientManager = new ZKClientManager(ZK_SERVER_ENSEMBLE);
         zkClientManager.openConnection();
-    }
-
-    /*
-     * Checks if all the input arguments are valid
-     *    - checkRevision indicates if we need to validate revision or not
-     */
-    private void validateInputArguments() throws KeeperException,
-            InterruptedException, IllegalArgumentException {
-
-        LOG.info("Validating Input Arguments");
-        String nodePath = "/organizations/" + org;
-        if (zkClientManager.getZNodeStats(nodePath) == null) {
-            throw new IllegalArgumentException(org + " " + ErrorMessages.ORGANIZATION_DOES_NOT_EXIST);
-        }
-
-        nodePath = nodePath + "/environments/" + env;
-        if (zkClientManager.getZNodeStats(nodePath) == null) {
-            throw new IllegalArgumentException(env +  " " + ErrorMessages.ENVIRONMENT_DOES_NOT_EXIST);
-        }
-
-        nodePath = nodePath + "/apiproxies/" + api;
-        if (zkClientManager.getZNodeStats(nodePath) == null) {
-            throw new IllegalArgumentException(api + " " + ErrorMessages.APIPROXY_DOES_NOT_EXIST);
-        }
-
-        // validate revision only if it is non null value
-        if (revision != null) {
-            nodePath = nodePath + "/revisions/" + revision;
-            if (zkClientManager.getZNodeStats(nodePath) == null) {
-                throw new IllegalArgumentException(revision + " " + ErrorMessages.REVISION_DOES_NOT_EXIST);
-            }
-        }
-
-        inputValid = true;
-        LOG.info("Validation of Input Arguments is complete - Input Arguments are valid");
     }
 
     /*
